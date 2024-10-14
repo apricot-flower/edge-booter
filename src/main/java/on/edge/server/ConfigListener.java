@@ -1,11 +1,17 @@
 package on.edge.server;
 
-import on.edge.except.ConfigException;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import on.edge.server.config.EdgeConfig;
+import on.edge.server.config.ServerItems;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.yaml.snakeyaml.Yaml;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 配置文件
@@ -14,131 +20,102 @@ public class ConfigListener {
 
     private static final Logger logger = LogManager.getLogger(ConfigListener.class);
 
+    /**
+     * args中配置文件的key
+     */
+    private static final String ymlKey = "--edge.configuration";
+    private static final String ymlName = "application.yml";
+    private static final String edgeKey = "edge";
+    private static final String serverKey = "server";
 
-    private final Map<String, String> argsMap;
+    private final Map<String, String> argsMap = new HashMap<>();
 
-    private final Map<String, ServerListener> serverMap;
+    /**
+     * 全配置文件
+     */
+    private JSONObject allConfigs;
 
-    private final Map<String, Integer> portMap;
+    /**
+     * 主配置文件
+     */
+    private final EdgeConfig edgeConfig = new EdgeConfig();
 
 
     public ConfigListener(String[] args, ClassLoader classLoader) {
-        this.argsMap = new HashMap<>();
         for (String arg : args) {
             String[] argArray = arg.split("=", 2);
             this.argsMap.put(argArray[0], argArray[1]);
         }
-        //解析yaml位置
         Yaml yaml = new Yaml();
-        Map<String, Object> map;
-        if (this.argsMap.containsKey("--edge.configuration")) {
-            map = yaml.load(this.argsMap.get("--edge.configuration"));
-        } else {
-            //配置
-            map = yaml.load(classLoader.getResourceAsStream("application.yml"));
-        }
-        if (!map.containsKey("edge")) {
-            throw new ConfigException("No server type configured！");
-        }
-        this.serverMap = new HashMap<>();
-        this.portMap = new HashMap<>();
-        List<Map<String, Object>> servers = (List<Map<String, Object>>) map.get("edge");
-        for (Map<String, Object> server : servers) {
-            Set<String> serverTypes = server.keySet();
-            for (String serverType : serverTypes) {
-                buildServer(serverType, server.get(serverType));
-            }
-        }
-    }
-
-    private void buildServer(String serverType, Object items) {
-        switch (serverType.trim().toUpperCase()) {
-            case SERVER.WEB:
-                buildWebServer(items);
-                break;
-            case SERVER.TCP_MASTER:
-                buildTcpMasterServer(items);
-                break;
-            case SERVER.TCP_SLAVE:
-                buildTcpSlaveServer(items);
-                break;
-            case SERVER.SERIAL:
-                buildSerialServer(items);
-                break;
-            default:
-                throw new ConfigException("config error!");
-        }
-    }
-
-    private void buildSerialServer(Object items) {
-        logger.debug("---->{}", items.toString());
-        List<Map<String, String>> serials = (List<Map<String, String>>) items;
-        for (Map<String, String> serial : serials) {
-        }
-    }
-
-    private void buildTcpSlaveServer(Object items) {
-        List<Map<String, String>> masters = (List<Map<String, String>>) items;
-        Set<String> hosts = new HashSet<>();
-        for (Map<String, String> item : masters) {
-
-            logger.debug("----------> {}", item.toString());
-            String name = item.get("name");
-            if (name.trim().equals("")) {
-                throw new ConfigException("tcp_slave must has name!");
-            }
-            String host = item.get("host").trim();
-            int port = Integer.parseInt(String.valueOf(item.get("port")).trim());
-            String hostFlag = host + ":" + port;
-            if (hosts.contains(hostFlag)) {
-                throw new ConfigException("tcp_slave host and port repeat!");
+        Map<String, Object> configMap = new HashMap<>();
+        try {
+            if (this.argsMap.containsKey(ymlKey)) {
+                configMap = yaml.load(this.argsMap.get(ymlKey));
             } else {
-                hosts.add(hostFlag);
+                //配置
+                configMap = yaml.load(classLoader.getResourceAsStream(ymlName));
             }
-            String serverFlag = SERVER.TCP_SLAVE + "_" + name;
-            ServerListener serverListener = new ServerListener();
-            serverListener.setName(name);
-            serverListener.setType(SERVER.TCP_SLAVE);
-            serverListener.setHost(host);
-            serverListener.setPort(port);
-            this.serverMap.put(serverFlag, serverListener);
+        } catch (Exception e) {
+            logger.error("Analyze main configuration error：", e);
+            System.exit(1);
+        }
+        this.allConfigs = JSONObject.parseObject(JSONObject.toJSONString(configMap));
+        if (this.allConfigs.containsKey(edgeKey)) {
+            buildEdge();
         }
     }
 
-    private void buildTcpMasterServer(Object items) {
-        Map<String, Integer> map = (Map<String, Integer>) items;
-        Integer port = map.getOrDefault("port", SERVER.DEFAULT_TCP_MASTER_PORT);
-        if (this.portMap.containsKey(SERVER.WEB)) {
-            if (port.equals(this.portMap.get(SERVER.WEB))) {
-                throw new ConfigException("WEB‘s port equals TCP_MASTER‘s port ");
-            }
-        } else {
-            this.portMap.put(SERVER.TCP_MASTER, port);
+    private void buildEdge() {
+        JSONObject edge = this.allConfigs.getJSONObject(edgeKey);
+        if (edge.containsKey(serverKey)) {
+            //build server
+            buildServer(edge.getJSONArray(serverKey));
         }
-        ServerListener serverListener = new ServerListener();
-        serverListener.setType(SERVER.TCP_MASTER);
-        serverListener.setName(SERVER.TCP_MASTER);
-        serverListener.setPort(port);
-        this.serverMap.put(SERVER.TCP_MASTER, serverListener);
-        logger.debug("tcp_master_server port: {}", port);
     }
 
-    private void buildWebServer(Object items) {
-        Map<String, Integer> map = (Map<String, Integer>) items;
-        Integer port = map.getOrDefault("port", SERVER.DEFAULT_WEB_PORT);
-        if (this.portMap.containsKey(SERVER.TCP_MASTER)) {
-            if (Objects.equals(this.portMap.get(SERVER.TCP_MASTER), port)) {
-                throw new ConfigException("WEB‘s port equals TCP_MASTER‘s port ");
+    //解析server配置
+    private void buildServer(JSONArray servers) {
+        for (int index = 0; index < servers.size(); index ++) {
+            JSONObject server = servers.getJSONObject(index);
+            if (server.containsKey(SERVER.WEB)) {
+                //解析Web服务
+                JSONObject items = server.getJSONObject(SERVER.WEB);
+                ServerItems webItems = JSONObject.parseObject(items.toJSONString(), ServerItems.class);
+                this.edgeConfig.getServer().setWebServer(webItems);
+            } else if (server.containsKey(SERVER.TCP_MASTER)) {
+                JSONObject items = server.getJSONObject(SERVER.TCP_MASTER);
+                ServerItems tcpMasterItems = JSONObject.parseObject(items.toJSONString(), ServerItems.class);
+                this.edgeConfig.getServer().setTcpMaster(tcpMasterItems);
+            } else if (server.containsKey(SERVER.TCP_SLAVE)) {
+                JSONArray tcpSlaveItems = server.getJSONArray(SERVER.TCP_SLAVE);
+                List<ServerItems> list = new ArrayList<>();
+                for (int i = 0; i < tcpSlaveItems.size(); i ++) {
+                    JSONObject tcpSlaveItem = tcpSlaveItems.getJSONObject(i);
+                    ServerItems tsItems = JSONObject.parseObject(tcpSlaveItem.toJSONString(), ServerItems.class);
+                    list.add(tsItems);
+                }
+                this.edgeConfig.getServer().setTcpSlave(list);
+            } else if (server.containsKey(SERVER.SERIAL)) {
+                JSONArray serialItems = server.getJSONArray(SERVER.SERIAL);
+                List<ServerItems> serials = new ArrayList<>();
+                for (int i = 0; i < serialItems.size(); i ++) {
+                    JSONObject serialItem = serialItems.getJSONObject(i);
+                    ServerItems tsItems = JSONObject.parseObject(serialItem.toJSONString(), ServerItems.class);
+                    serials.add(tsItems);
+                }
+                this.edgeConfig.getServer().setSerial(serials);
+            } else {
+                logger.error("Undefined service types have appeared！");
             }
-        } else {
-            this.portMap.put(SERVER.WEB, port);
         }
-        ServerListener serverListener = new ServerListener();
-        serverListener.setType(SERVER.WEB);
-        serverListener.setName(SERVER.WEB);
-        serverListener.setPort(port);
-        this.serverMap.put(SERVER.WEB, serverListener);
-        logger.debug("web_server port: {}", port);
     }
 
+
+    public boolean checkServer(String serverType) {
+        return this.edgeConfig.getServer().check(serverType);
+    }
+
+    public EdgeConfig getEdgeConfig() {
+        return edgeConfig;
+    }
 }

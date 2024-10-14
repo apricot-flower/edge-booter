@@ -1,9 +1,9 @@
-package on.edge.server;
+package on.edge.server.config;
 
 /**
  * 服务类型
  */
-public class ServerListener {
+public class ServerItems {
 
     private String type;
 
@@ -24,7 +24,7 @@ public class ServerListener {
     private String parity;
 
 
-    public ServerListener() {
+    public ServerItems() {
     }
 
 
@@ -101,5 +101,20 @@ public class ServerListener {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    @Override
+    public String toString() {
+        return "ServerItems{" +
+                "type='" + type + '\'' +
+                ", name='" + name + '\'' +
+                ", port=" + port +
+                ", host='" + host + '\'' +
+                ", dev='" + dev + '\'' +
+                ", baud=" + baud +
+                ", dataBits=" + dataBits +
+                ", stopBits=" + stopBits +
+                ", parity='" + parity + '\'' +
+                '}';
     }
 }

@@ -5,6 +5,13 @@ package on.edge.server;
  */
 public interface ServerContext {
 
+    /**
+     * 启动
+     */
     public void start();
+
+    /**
+     * 关闭
+     */
     public void close();
 }
