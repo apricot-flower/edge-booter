@@ -1,4 +1,4 @@
-package on.edge.server.config;
+package on.edge.config;
 
 /**
  * 服务类型
@@ -27,6 +27,18 @@ public class ServerItems {
     public ServerItems() {
     }
 
+
+    public ServerItems(String type, String name, int port, String host, String dev, int baud, int dataBits, int stopBits, String parity) {
+        this.type = type;
+        this.name = name;
+        this.port = port;
+        this.host = host;
+        this.dev = dev;
+        this.baud = baud;
+        this.dataBits = dataBits;
+        this.stopBits = stopBits;
+        this.parity = parity;
+    }
 
     public String getType() {
         return type;

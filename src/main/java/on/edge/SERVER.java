@@ -1,4 +1,4 @@
-package on.edge.server;
+package on.edge;
 
 
 /**

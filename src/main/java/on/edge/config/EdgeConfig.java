@@ -1,4 +1,4 @@
-package on.edge.server.config;
+package on.edge.config;
 
 /**
  * 主配置文件

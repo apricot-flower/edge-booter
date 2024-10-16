@@ -1,6 +1,7 @@
-package on.edge.server.config;
+package on.edge.config;
 
-import on.edge.server.SERVER;
+
+import on.edge.SERVER;
 
 import java.util.List;
 

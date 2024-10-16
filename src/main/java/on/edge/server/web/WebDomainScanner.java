@@ -1,75 +1,70 @@
 package on.edge.server.web;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import on.edge.except.ControllerException;
 
 import java.io.File;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
-/**
- * 扫描controller
- */
 public class WebDomainScanner {
-
-    private static final Logger logger = LogManager.getLogger(WebDomainScanner.class);
 
     private final List<Class<?>> classes;
 
-    private final Map<String, ControllerMethod> methods;
+    private final Map<String, ControllerMethod> requestGets;
 
-    public WebDomainScanner() {
+    private final Map<String, ControllerMethod> requestPosts;
+
+    private final String path;
+
+
+    public WebDomainScanner(String path) {
+        this.path = path;
         this.classes = Collections.synchronizedList(new ArrayList<>());
-        this.methods = Collections.synchronizedMap(new HashMap<>());
+        this.requestGets = Collections.synchronizedMap(new HashMap<>());
+        this.requestPosts = Collections.synchronizedMap(new HashMap<>());
     }
 
-    public WebDomainScanner scan(String path) {
+
+    public WebDomainScanner scan() throws Exception {
         scanController(path);
+        List<String> uriList = new ArrayList<>();
         //挨个解析controller
-        try {
-            for (Class<?> clazz : this.classes) {
-                if (!clazz.isAnnotationPresent(Controller.class)) {
-                    continue;
-                }
-                Controller controller = clazz.getAnnotation(Controller.class);
-                String uri = controller.value();
-                //扫描类下面的具体接口
-                Method[] methods = clazz.getDeclaredMethods();
-                if (methods.length > 0) {
-                    Object instance = clazz.getDeclaredConstructor().newInstance();
-                    for (Method method : methods) {
-                        if (Modifier.isPublic(method.getModifiers()) && method.isAnnotationPresent(Mapping.class)) {
-                            Mapping mapping = method.getAnnotation(Mapping.class);
-                            String methodUri = "";
-                            if (mapping.uri().trim().equals("/")) {
-                                methodUri = uri;
-                            } else {
-                                methodUri = mapping.uri();
-                                if (methodUri.startsWith("/")) {
-                                    methodUri = methodUri.substring(1);
-                                }
-                                methodUri = uri + methodUri;
-                            }
-                            ControllerMethod controllerMethod = new ControllerMethod(instance, method, mapping.method(), methodUri);
-                            if (this.methods.containsKey(methodUri)) {
-                                logger.error("重复定义uri：{}", methodUri);
-                                System.exit(1);
-                            }
-                            this.methods.put(methodUri, controllerMethod);
+        for (Class<?> clazz : this.classes) {
+            if (!clazz.isAnnotationPresent(Controller.class)) {
+                continue;
+            }
+            Controller controller = clazz.getAnnotation(Controller.class);
+            String uri = controller.value().replaceAll("/", "").trim();
+            //扫描类下面的具体接口
+            Method[] methods = clazz.getDeclaredMethods();
+            if (methods.length > 0) {
+                Object instance = clazz.getDeclaredConstructor().newInstance();
+                for (Method method : methods) {
+                    if (Modifier.isPublic(method.getModifiers()) && method.isAnnotationPresent(Mapping.class)) {
+                        Mapping mapping = method.getAnnotation(Mapping.class);
+                        String[] methodUriSplit = mapping.uri().split("/");
+                        String methodUri = ("/" + uri + String.join("/", methodUriSplit)).replace("//", "/");
+                        ControllerMethod controllerMethod = new ControllerMethod(instance, method, mapping.method(), methodUri);
+                        if (uriList.contains(methodUri)) {
+                            throw new ControllerException("Repeat URI:" + methodUri);
+                        } else {
+                            uriList.add(methodUri);
+                        }
+                        if (mapping.method() == HttpMethod.GET) {
+                            //get请求
+                            this.requestGets.put(methodUri, controllerMethod);
+                        } else if (mapping.method() == HttpMethod.POST) {
+                            this.requestPosts.put(methodUri, controllerMethod);
                         }
                     }
                 }
-
             }
-        } catch (Exception e) {
-            logger.error("analyze controller error:", e);
-            System.exit(1);
         }
         return this;
     }
 
-    private void scanController(String path) {
+    private void scanController(String path) throws Exception {
         String fileName = path.replaceAll("\\.", "/");
         File file = new File(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResource(fileName)).getFile());
         File[] files = file.listFiles();
@@ -80,20 +75,19 @@ public class WebDomainScanner {
                 scanController(path+"."+currentPathName);
             } else {
                 if (f.getName().endsWith(".class")) {
-                    Class<?> clazz = null;
-                    try {
-                        clazz = Thread.currentThread().getContextClassLoader().loadClass(path+"."+f.getName().replace(".class",""));
-                        this.classes.add(clazz);
-                    } catch (ClassNotFoundException e) {
-                        logger.error("controller scan error:", e);
-                    }
-
+                    Class<?> clazz = Thread.currentThread().getContextClassLoader().loadClass(path+"."+f.getName().replace(".class",""));
+                    this.classes.add(clazz);
                 }
             }
         }
     }
 
-    public ControllerMethod driver(String uri) {
-        return this.methods.getOrDefault(uri, null);
+
+    public Map<String, ControllerMethod> getRequestGets() {
+        return requestGets;
+    }
+
+    public Map<String, ControllerMethod> getRequestPosts() {
+        return requestPosts;
     }
 }
