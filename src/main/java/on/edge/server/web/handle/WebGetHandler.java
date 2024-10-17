@@ -4,10 +4,7 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import on.edge.except.ControllerException;
 import on.edge.server.web.ControllerMethod;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -37,7 +34,7 @@ public class WebGetHandler extends WebHandler {
             return controllerMethod.getMethod().invoke(controllerMethod.getClazz());
         }
         List<Object> request = new ArrayList<>();
-        Map<String, String> requestParams = Arrays.stream(params.split(GET_VALUE_DEFAULT_SPLIT))
+        Map<String, String> requestParams = params == null ? new HashMap<>() : Arrays.stream(params.split(GET_VALUE_DEFAULT_SPLIT))
                 .map(pair -> pair.split(GET_VALUE_TO_VALUE_DEFAULT_SPLIT, 2))
                 .filter(keyValue -> keyValue.length == 2)
                 .collect(Collectors.toMap(keyValue -> keyValue[0], keyValue -> keyValue[1]));

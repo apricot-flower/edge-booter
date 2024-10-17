@@ -11,6 +11,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 解析配置
+ */
 @SuppressWarnings("all")
 public class ConfigListener {
 

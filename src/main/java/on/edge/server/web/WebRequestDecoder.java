@@ -14,12 +14,15 @@ import java.util.Map;
 /**
  * web服务编解码器
  */
+@SuppressWarnings("all")
 @ChannelHandler.Sharable
 public class WebRequestDecoder extends SimpleChannelInboundHandler<FullHttpRequest> {
     private static final String FAVICON_ICO = "/favicon.ico";
 
 
     private Map<String, WebHandler> handlers;
+
+    private GlobalExceptionHandler globalExceptionHandler;
 
     public WebRequestDecoder append(Map<String, WebHandler> handlers) {
         this.handlers = handlers;
@@ -49,9 +52,12 @@ public class WebRequestDecoder extends SimpleChannelInboundHandler<FullHttpReque
                     response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, Unpooled.wrappedBuffer(mapper.writeValueAsBytes(result)));
                 }
                 ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-            } catch (Exception e) {
-                e.printStackTrace();
-                error(ctx, new ObjectMapper().writeValueAsString(e.getMessage()));
+            } catch (Throwable e) {
+                if (this.globalExceptionHandler != null) {
+                    error(ctx, new ObjectMapper().writeValueAsString(this.globalExceptionHandler.handle(e)));
+                } else {
+                    error(ctx, new ObjectMapper().writeValueAsString(e.getMessage()));
+                }
             }
         } else {
             //抛出异常
@@ -76,6 +82,8 @@ public class WebRequestDecoder extends SimpleChannelInboundHandler<FullHttpReque
     }
 
 
-
-
+    public WebRequestDecoder buildWebGlobalErrorHandle(GlobalExceptionHandler globalExceptionHandler) {
+        this.globalExceptionHandler = globalExceptionHandler;
+        return this;
+    }
 }

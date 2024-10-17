@@ -33,7 +33,7 @@ edge:
           parity: "E"
 ```
 ### WEB服务器
-###### 内置的统一返回类
+###### 内置的统一返回类，可以不用自定义
 ```java
 import on.edge.server.web.BaseUnifiedResponse;
 ```
@@ -76,3 +76,54 @@ public class TestController {
 
 }
 ```
+###### IOC
+```yaml
+import com.td.controller.wq.TT;
+import on.edge.ioc.Bean;
+import on.edge.ioc.Component;
+import on.edge.ioc.Resource;
+import on.edge.ioc.Value;
+
+@Component(name = "tt_config")
+public class TTConfig {
+
+    /**
+     * 获取yml中的数据
+     */
+    @Value(name = "ed.ge.ss")
+    private String todos;
+
+    /**
+     * 自动加载一个对象
+     */
+    @Resource(name = "first_tt")
+    private TT ts;
+
+    @Bean(name = "second_tt")
+    public TT buildTT() {
+        return new TT("test", 22);
+    }
+}
+```
+
+###### WEB服务器全局异常管理
+1. 实现on.edge.server.web.GlobalExceptionHandler
+2. 启动项加载全局异常
+```java
+@ControllerPath("com.td.controller") //controller层位置
+public class Application {
+
+    public static void main(String[] args) throws Exception {
+        try {
+            EdgeApplication.build(Application.class, args).buildWebGlobalErrorHandle(new MyGlobalExceptionHandler()).run();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+}
+```
+
+###### 操作数据库
+
+
+###### 登录

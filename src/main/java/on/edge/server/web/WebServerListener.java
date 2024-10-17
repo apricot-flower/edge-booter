@@ -1,6 +1,7 @@
 package on.edge.server.web;
 
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -38,6 +39,8 @@ public class WebServerListener implements ServerContext {
     private WebDomainScanner webDomainScanner;
 
     private final Map<String, WebHandler> handlers;
+
+    private GlobalExceptionHandler globalExceptionHandler;
 
 
     public WebServerListener(int port,  Class<?> param) {
@@ -81,19 +84,27 @@ public class WebServerListener implements ServerContext {
     /**
      * 构建表信息
      */
-    @Override
-    public WebServerListener build() throws Exception {
+    public WebServerListener build(Map<String, Object> ioc, ObjectNode allConfigs) throws Exception {
         String path = param.getName().substring(0, param.getName().lastIndexOf('.'));
         if (param.isAnnotationPresent(ControllerPath.class)) {
             ControllerPath controllerPath = param.getAnnotation(ControllerPath.class);
             path = controllerPath.value();
         }
-        this.webDomainScanner = new WebDomainScanner(path).scan();
+        this.webDomainScanner = new WebDomainScanner(path).scan(ioc, allConfigs);
         //初始化get请求
         this.handlers.put(HttpMethod.GET.getMethod(), new WebGetHandler(this.webDomainScanner.getRequestGets()));
         // 初始化post请求
         this.handlers.put(HttpMethod.POST.getMethod(), new WebPostHandler(this.webDomainScanner.getRequestPosts()));
-        this.webRequestDecoder = new WebRequestDecoder().append(this.handlers);
+        this.webRequestDecoder = new WebRequestDecoder().append(this.handlers).buildWebGlobalErrorHandle(globalExceptionHandler);
+        return this;
+    }
+
+    /**
+     * 全局异常处理
+     * @param handler
+     */
+    public WebServerListener buildWebGlobalErrorHandle(GlobalExceptionHandler handler) {
+        this.globalExceptionHandler = handler;
         return this;
     }
 }

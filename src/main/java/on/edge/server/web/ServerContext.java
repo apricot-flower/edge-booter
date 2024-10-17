@@ -15,8 +15,4 @@ public interface ServerContext {
      */
     public void close() throws Exception;
 
-    /**
-     * 构建表信息
-     */
-    public ServerContext build() throws Exception;
 }
