@@ -1,6 +1,7 @@
 package on.edge;
 
 import on.edge.ioc.EdgeIocListener;
+import on.edge.server.tcp_master.TCPChannelManager;
 import on.edge.server.tcp_master.TCPMasterListener;
 import on.edge.server.web.GlobalExceptionHandler;
 import on.edge.server.web.WebServerListener;
@@ -39,6 +40,11 @@ public class EdgeApplication {
      */
     private GlobalExceptionHandler globalExceptionHandler;
 
+    /**
+     * tcp主站处理器
+     */
+    private TCPChannelManager tcpChannelManager;
+
     public EdgeApplication(Class<?> param, String... args) throws Exception {
         this.param = param;
         this.configListener = new ConfigListener(args, param.getClassLoader()).build();
@@ -64,7 +70,7 @@ public class EdgeApplication {
             this.webServerListener = new WebServerListener(this.configListener.getEdgeConfig().getServer().getWebServer().getPort(), param).buildWebGlobalErrorHandle(globalExceptionHandler).build(this.edgeIocListener.getIoc(),this.configListener.getAllConfigs()).start();
         }
         if (this.configListener.checkServer(SERVER.TCP_MASTER)) {
-            this.tcpMasterListener = new TCPMasterListener(this.configListener.getEdgeConfig().getServer().getTcpMaster().getPort()).start();
+            this.tcpMasterListener = new TCPMasterListener(this.configListener.getEdgeConfig().getServer().getTcpMaster().getPort(), this.tcpChannelManager).start();
         }
 
 
@@ -88,6 +94,15 @@ public class EdgeApplication {
      */
     public EdgeApplication buildWebGlobalErrorHandle(GlobalExceptionHandler handler) {
         this.globalExceptionHandler = handler;
+        return this;
+    }
+
+
+    /**
+     * tcp主站的处理器
+     */
+    public EdgeApplication buildTcpMasterChannelManager(TCPChannelManager tcpChannelManager) {
+        this.tcpChannelManager = tcpChannelManager;
         return this;
     }
 
