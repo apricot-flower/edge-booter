@@ -7,6 +7,8 @@ public class EdgeConfig {
 
     private ServerConfig server;
 
+    private JDBCConfig jdbcConfig;
+
     public EdgeConfig() {
         this.server = new ServerConfig();
     }
@@ -18,5 +20,13 @@ public class EdgeConfig {
 
     public void setServer(ServerConfig server) {
         this.server = server;
+    }
+
+    public JDBCConfig getJdbcConfig() {
+        return jdbcConfig;
+    }
+
+    public void setJdbcConfig(JDBCConfig jdbcConfig) {
+        this.jdbcConfig = jdbcConfig;
     }
 }

@@ -9,7 +9,6 @@ import on.edge.except.IOCException;
 import on.edge.ioc.Resource;
 import on.edge.ioc.Value;
 
-import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -18,7 +17,6 @@ import java.util.*;
 @SuppressWarnings("all")
 public class WebDomainScanner extends BaseHandler {
 
-    private final List<Class<?>> classes;
 
     private final Map<String, ControllerMethod> requestGets;
 
@@ -29,20 +27,16 @@ public class WebDomainScanner extends BaseHandler {
 
     public WebDomainScanner(String path) {
         this.path = path;
-        this.classes = Collections.synchronizedList(new ArrayList<>());
         this.requestGets = Collections.synchronizedMap(new HashMap<>());
         this.requestPosts = Collections.synchronizedMap(new HashMap<>());
     }
 
 
     public WebDomainScanner scan(Map<String, Object> ioc, ObjectNode allConfigs) throws Exception {
-        scanController(path);
+        List<Class<?>> classes = scanController();
         List<String> uriList = new ArrayList<>();
         //挨个解析controller
-        for (Class<?> clazz : this.classes) {
-            if (!clazz.isAnnotationPresent(Controller.class)) {
-                continue;
-            }
+        for (Class<?> clazz : classes) {
             Controller controller = clazz.getAnnotation(Controller.class);
             String uri = controller.value().replaceAll("/", "").trim();
             //扫描类下面的具体接口
@@ -124,22 +118,16 @@ public class WebDomainScanner extends BaseHandler {
     }
 
 
-    private void scanController(String path) throws Exception {
-        String fileName = path.replaceAll("\\.", "/");
-        File file = new File(Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResource(fileName)).getFile());
-        File[] files = file.listFiles();
-        assert files != null;
-        for (File f : files) {
-            if (f.isDirectory()) {
-                String currentPathName = f.getAbsolutePath().substring(f.getAbsolutePath().lastIndexOf(File.separator)+1);
-                scanController(path+"."+currentPathName);
-            } else {
-                if (f.getName().endsWith(".class")) {
-                    Class<?> clazz = Thread.currentThread().getContextClassLoader().loadClass(path+"."+f.getName().replace(".class",""));
-                    this.classes.add(clazz);
-                }
+    private List<Class<?>> scanController() throws Exception {
+        List<Class<?>> classList = getAllClassByPackageName(this.path);
+        List<Class<?>> classes = new ArrayList<>();
+        for (Class<?> clazz :  classList) {
+            if (!clazz.isAnnotationPresent(Controller.class)) {
+                continue;
             }
+            classes.add(clazz);
         }
+        return classes;
     }
 
 

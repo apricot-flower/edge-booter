@@ -39,7 +39,6 @@ public class IOCAss extends BaseHandler {
         this.classes = classes;
         beanHandle();
         composite();
-
         return this;
     }
 

@@ -53,6 +53,7 @@ public class WebRequestDecoder extends SimpleChannelInboundHandler<FullHttpReque
                 }
                 ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
             } catch (Throwable e) {
+                e.printStackTrace();
                 if (this.globalExceptionHandler != null) {
                     error(ctx, new ObjectMapper().writeValueAsString(this.globalExceptionHandler.handle(e)));
                 } else {

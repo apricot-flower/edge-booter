@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import on.edge.config.EdgeConfig;
+import on.edge.config.JDBCConfig;
 import on.edge.config.ServerItems;
 import org.yaml.snakeyaml.Yaml;
 
@@ -24,6 +25,7 @@ public class ConfigListener {
     private static final String ymlName = "application.yml";
     private static final String edgeKey = "edge";
     private static final String serverKey = "server";
+    private static final String jdbcKey = "jdbc";
     private static final String argsSplit = "=";
 
 
@@ -86,6 +88,12 @@ public class ConfigListener {
                 this.edgeConfig.getServer().setSerial(new ObjectMapper().treeToValue(servers.get(SERVER.SERIAL), List.class));
             }
         }
+        //解析jdbc配置
+        if (!this.allConfigs.get(edgeKey).has(jdbcKey)) {
+            return this;
+        }
+        JsonNode jdbcNode = this.allConfigs.get(edgeKey).get(jdbcKey);
+        this.edgeConfig.setJdbcConfig(new ObjectMapper().treeToValue(jdbcNode, JDBCConfig.class));
         return this;
     }
 

@@ -11,6 +11,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
+import on.edge.server.ServerContext;
 import on.edge.server.web.handle.WebGetHandler;
 import on.edge.server.web.handle.WebHandler;
 import on.edge.server.web.handle.WebPostHandler;
@@ -19,6 +20,7 @@ import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 
 @SuppressWarnings("all")
@@ -57,7 +59,20 @@ public class WebServerListener implements ServerContext {
      * 启动
      */
     @Override
-    public void start() throws Exception {
+    public WebServerListener start() throws Exception {
+        CompletableFuture.runAsync(() -> {
+            try {
+                connect();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).exceptionally(ex -> {handleException(ex);
+            return null;});
+        return this;
+    }
+
+
+    private void connect() throws Exception {
         this.bootstrap.group(boss, work).channel(NioServerSocketChannel.class)
                 .childHandler(new ChannelInitializer<SocketChannel>() {
 
@@ -85,7 +100,7 @@ public class WebServerListener implements ServerContext {
      * 构建表信息
      */
     public WebServerListener build(Map<String, Object> ioc, ObjectNode allConfigs) throws Exception {
-        String path = param.getName().substring(0, param.getName().lastIndexOf('.'));
+        String path = param.getPackage().getName();
         if (param.isAnnotationPresent(ControllerPath.class)) {
             ControllerPath controllerPath = param.getAnnotation(ControllerPath.class);
             path = controllerPath.value();
@@ -107,4 +122,11 @@ public class WebServerListener implements ServerContext {
         this.globalExceptionHandler = handler;
         return this;
     }
+
+    @Override
+    public void handleException(Throwable ex) {
+        ex.printStackTrace();
+        System.exit(1);
+    }
+
 }
