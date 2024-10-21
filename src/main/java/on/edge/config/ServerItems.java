@@ -21,14 +21,16 @@ public class ServerItems {
 
     private int stopBits;
 
-    private String parity;
+    private int parity;
 
+    private int timeout;
+
+    private boolean reconnect;
 
     public ServerItems() {
     }
 
-
-    public ServerItems(String type, String name, int port, String host, String dev, int baud, int dataBits, int stopBits, String parity) {
+    public ServerItems(String type, String name, int port, String host, String dev, int baud, int dataBits, int stopBits, int parity, int timeout, boolean reconnect) {
         this.type = type;
         this.name = name;
         this.port = port;
@@ -38,7 +40,10 @@ public class ServerItems {
         this.dataBits = dataBits;
         this.stopBits = stopBits;
         this.parity = parity;
+        this.timeout = timeout;
+        this.reconnect = reconnect;
     }
+
 
     public String getType() {
         return type;
@@ -46,6 +51,14 @@ public class ServerItems {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public int getPort() {
@@ -96,37 +109,29 @@ public class ServerItems {
         this.stopBits = stopBits;
     }
 
-    public String getParity() {
+    public int getParity() {
         return parity;
     }
 
-
-
-    public void setParity(String parity) {
+    public void setParity(int parity) {
         this.parity = parity;
     }
 
-
-    public String getName() {
-        return name;
+    public int getTimeout() {
+        return timeout;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
     }
 
-    @Override
-    public String toString() {
-        return "ServerItems{" +
-                "type='" + type + '\'' +
-                ", name='" + name + '\'' +
-                ", port=" + port +
-                ", host='" + host + '\'' +
-                ", dev='" + dev + '\'' +
-                ", baud=" + baud +
-                ", dataBits=" + dataBits +
-                ", stopBits=" + stopBits +
-                ", parity='" + parity + '\'' +
-                '}';
+    public boolean isReconnect() {
+        return reconnect;
     }
+
+    public void setReconnect(boolean reconnect) {
+        this.reconnect = reconnect;
+    }
+
+
 }

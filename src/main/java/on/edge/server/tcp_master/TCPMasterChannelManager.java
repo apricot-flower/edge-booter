@@ -3,10 +3,6 @@ package on.edge.server.tcp_master;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.ByteToMessageDecoder;
-import io.netty.handler.codec.DelimiterBasedFrameDecoder;
-import io.netty.handler.codec.FixedLengthFrameDecoder;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 
 import java.nio.ByteOrder;
 
@@ -14,18 +10,18 @@ import java.nio.ByteOrder;
  * 编解码器
  */
 @SuppressWarnings("all")
-public abstract class TCPChannelManager {
+public abstract class TCPMasterChannelManager {
 
-    private ByteToMessageDecoder decoder;
+    private ChannelManager decoder;
 
     /**
      * 基于分隔符处理数据帧
      * @param separator 分隔符
      * @param maxFrameLength 报文最大长度
      */
-    public final TCPChannelManager buildSeparator(String separator, int maxFrameLength) {
+    public final TCPMasterChannelManager buildSeparator(String separator, int maxFrameLength) {
         ByteBuf buf = Unpooled.copiedBuffer(separator.getBytes());
-        this.decoder = new DelimiterBasedFrameDecoder(maxFrameLength, buf);
+        this.decoder = new SeparatorManager(maxFrameLength, buf);
         return this;
     }
 
@@ -34,8 +30,8 @@ public abstract class TCPChannelManager {
      * 基于报文长度处理数据帧
      * @param length 报文长度
      */
-    public final TCPChannelManager buildFixedLength(int length) {
-        this.decoder = new FixedLengthFrameDecoder(length);
+    public final TCPMasterChannelManager buildFixedLength(int length) {
+        this.decoder = new FixedLengthManager(length);
         return this;
     }
 
@@ -49,17 +45,17 @@ public abstract class TCPChannelManager {
      * @param initialBytesToStrip 从解码后的帧中剥离的字节数。通常设置为 0，表示不剥离任何字节
      * @param failFast 如果设置为 true，解码器会在检测到帧长度超过 maxFrameLength 时立即抛出 TooLongFrameException；如果设置为 false，解码器会继续读取数据，直到读取到足够的数据来判断帧长度是否超过 maxFrameLength
      */
-    public final TCPChannelManager buildLengthFieldBasedFrame(ByteOrder byteOrder, int maxFrameLength, int lengthFieldOffset, int lengthFieldLength, int lengthAdjustment, int initialBytesToStrip, boolean failFast) {
-        this.decoder = new LengthFieldBasedFrameDecoder(byteOrder, maxFrameLength, lengthFieldOffset, lengthFieldLength, lengthAdjustment, initialBytesToStrip, failFast);
+    public final TCPMasterChannelManager buildLengthFieldBasedFrame(ByteOrder byteOrder, int maxFrameLength, int lengthFieldOffset, int lengthFieldLength, int lengthAdjustment, int initialBytesToStrip, boolean failFast) {
+        this.decoder = new LengthFieldBasedFrameManager(byteOrder, maxFrameLength, lengthFieldOffset, lengthFieldLength, lengthAdjustment, initialBytesToStrip, failFast);
         return this;
     }
 
     /**
      * 自定义拆包器
-     * @param decoder 自定义拆包器
+     * @param manager 自定义拆包器
      */
-    public final TCPChannelManager buildCustomize(ByteToMessageDecoder decoder) {
-        this.decoder = decoder;
+    public final TCPMasterChannelManager buildCustomize(ChannelManager manager) {
+        this.decoder = manager;
         return this;
     }
 
@@ -121,7 +117,12 @@ public abstract class TCPChannelManager {
         getCtx(clientIdent).writeAndFlush(data);
     }
 
-    public final ByteToMessageDecoder getDecoder() {
+    /**
+     * 运行一些业务
+     */
+    public abstract void run();
+
+    final ChannelManager getDecoder() {
         return decoder;
     }
 }

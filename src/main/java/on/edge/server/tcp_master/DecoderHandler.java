@@ -5,16 +5,19 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.socket.SocketChannel;
 
+/**
+ * 解码器
+ */
 @ChannelHandler.Sharable
 @SuppressWarnings("all")
 public class DecoderHandler extends ChannelInboundHandlerAdapter {
 
-    private TCPChannelManager tcpChannelManager;
+    private TCPMasterChannelManager tcpChannelManager;
 
     public DecoderHandler() {
     }
 
-    public DecoderHandler(TCPChannelManager tcpChannelManager) {
+    public DecoderHandler(TCPMasterChannelManager tcpChannelManager) {
         this.tcpChannelManager = tcpChannelManager;
     }
 
@@ -27,6 +30,7 @@ public class DecoderHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        TCPMasterListener.deleteCtx(getRemoteAddress(ctx));
         if (this.tcpChannelManager != null) {
             this.tcpChannelManager.clientDisconnect(getRemoteAddress(ctx));
         }

@@ -1,5 +1,6 @@
 package on.edge;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -82,10 +83,10 @@ public class ConfigListener {
                 this.edgeConfig.getServer().setTcpMaster(new ObjectMapper().treeToValue(servers.get(SERVER.TCP_MASTER), ServerItems.class));
             }
             if (servers.has(SERVER.TCP_SLAVE)) {
-                this.edgeConfig.getServer().setTcpSlave(new ObjectMapper().treeToValue(servers.get(SERVER.TCP_SLAVE), List.class));
+                this.edgeConfig.getServer().setTcpSlave(new ObjectMapper().readerFor(new TypeReference<List<ServerItems>>(){}).readValue(servers.path(SERVER.TCP_SLAVE)));
             }
             if (servers.has(SERVER.SERIAL)) {
-                this.edgeConfig.getServer().setSerial(new ObjectMapper().treeToValue(servers.get(SERVER.SERIAL), List.class));
+                this.edgeConfig.getServer().setSerial(new ObjectMapper().readerFor(new TypeReference<List<ServerItems>>(){}).readValue(servers.path(SERVER.SERIAL)));
             }
         }
         //解析jdbc配置

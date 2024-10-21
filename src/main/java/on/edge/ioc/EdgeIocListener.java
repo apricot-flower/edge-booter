@@ -7,6 +7,7 @@ import on.edge.except.ConfigException;
 import on.edge.except.IOCException;
 import on.edge.jdbc.EdgeJDBCListener;
 import on.edge.jdbc.JDBCManager;
+import on.edge.server.serial.SerialAdministrators;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -111,5 +112,9 @@ public class EdgeIocListener extends BaseHandler {
 
     public Map<String, Object> getIoc() {
         return ioc;
+    }
+
+    public void save(String key, SerialAdministrators serialAdministrators) {
+        this.ioc.put(key, serialAdministrators);
     }
 }

@@ -1,12 +1,10 @@
 package on.edge.server.tcp_master;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.ByteToMessageDecoder;
 import on.edge.server.ServerContext;
 
 import java.util.Collections;
@@ -20,11 +18,11 @@ import java.util.concurrent.CompletableFuture;
 @SuppressWarnings("all")
 public class TCPMasterListener implements ServerContext {
 
-    private static final Map<String, ChannelHandlerContext> ctxMap = Collections.synchronizedMap(new HashMap<>());
+    private static final Map<String, ChannelHandlerContext> masterCtxMap = Collections.synchronizedMap(new HashMap<>());
 
     private int port;
 
-    private ByteToMessageDecoder decoder;
+    private ChannelManager decoder;
 
     private EventLoopGroup boss;
     //在boss接受连接并将接受的连接注册给worker后，它处理接受的连接的流量
@@ -33,8 +31,11 @@ public class TCPMasterListener implements ServerContext {
 
     private DecoderHandler decoderHandler;
 
-    public TCPMasterListener(int port, TCPChannelManager tcpChannelManager) {
+    private TCPMasterChannelManager tcpChannelManager;
+
+    public TCPMasterListener(int port, TCPMasterChannelManager tcpChannelManager) {
         this.port = port;
+        this.tcpChannelManager = tcpChannelManager;
         if (tcpChannelManager == null) {
             this.decoderHandler = new DecoderHandler();
         } else {
@@ -59,6 +60,9 @@ public class TCPMasterListener implements ServerContext {
             }
         }).exceptionally(ex -> {handleException(ex);
             return null;});
+        if (this.tcpChannelManager != null) {
+            this.tcpChannelManager.run();
+        }
         return this;
     }
 
@@ -73,7 +77,7 @@ public class TCPMasterListener implements ServerContext {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         if (decoder != null) {
-                            ch.pipeline().addLast(getDecoder());
+                            ch.pipeline().addLast(decoder.build());
                         }
                         ch.pipeline().addLast(decoderHandler);
                     }
@@ -102,28 +106,21 @@ public class TCPMasterListener implements ServerContext {
      * 获取连接
      */
     public static ChannelHandlerContext getCtx(String ident) {
-        return ctxMap.getOrDefault(ident, null);
+        return masterCtxMap.getOrDefault(ident, null);
     }
 
     /**
      * 添加连接
      */
     public static void addCtx(String ident, ChannelHandlerContext ctx) {
-       ctxMap.put(ident, ctx);
+        masterCtxMap.put(ident, ctx);
     }
 
     /**
      * 删除一个连接
      */
     public static void deleteCtx(String ident) {
-        ctxMap.remove(ident);
-    }
-
-    // todo 这里需要实现深拷贝
-    private ByteToMessageDecoder getDecoder() throws Exception {
-        ObjectMapper objectMapper = new ObjectMapper();
-        new ObjectMapper().writeValueAsString(this.decoder);
-        return objectMapper.readValue(objectMapper.writeValueAsString(this.decoder), decoder.getClass());
+        masterCtxMap.remove(ident);
     }
 
 }
