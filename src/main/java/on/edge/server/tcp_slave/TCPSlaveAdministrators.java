@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("all")
 public class TCPSlaveAdministrators implements ServerContext {
 
-    public final ScheduledExecutorService executor;
+    public ScheduledExecutorService executor;
 
 
     private String name;
@@ -41,7 +41,6 @@ public class TCPSlaveAdministrators implements ServerContext {
     public TCPSlaveAdministrators(ServerItems serverItem, TCPSlaveChannelManager tcpSlaveChannelManager) {
         this.group = new NioEventLoopGroup(5);
         this.executor = Executors.newScheduledThreadPool(3);
-        this.tcpSlaveChannelManager = tcpSlaveChannelManager;
         this.name = serverItem.getName();
         this.host = serverItem.getHost();
         this.port = serverItem.getPort();
@@ -63,14 +62,17 @@ public class TCPSlaveAdministrators implements ServerContext {
             }
         }).exceptionally(ex -> {handleException(ex);
             return null;});
-        executor.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                if (!TCPSlaveListener.linkedFlag(name)) {
-                    connect(true);
+        if (reconnect) {
+            this.tcpSlaveChannelManager = tcpSlaveChannelManager;
+            executor.scheduleAtFixedRate(new Runnable() {
+                @Override
+                public void run() {
+                    if (!TCPSlaveListener.linkedFlag(name)) {
+                        connect(true);
+                    }
                 }
-            }
-        }, timeout * 2, 10, TimeUnit.SECONDS);
+            }, timeout * 2, 10, TimeUnit.SECONDS);
+        }
         return this;
     }
 
