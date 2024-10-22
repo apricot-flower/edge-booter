@@ -23,33 +23,25 @@ public class DecoderHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (tcpChannelManager != null) {
-            this.tcpChannelManager.receivedMessage(getRemoteAddress(ctx), msg);
-        }
+        this.tcpChannelManager.receivedMessage(getRemoteAddress(ctx), msg);
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         TCPMasterListener.deleteCtx(getRemoteAddress(ctx));
-        if (this.tcpChannelManager != null) {
-            this.tcpChannelManager.clientDisconnect(getRemoteAddress(ctx));
-        }
+        this.tcpChannelManager.clientDisconnect(getRemoteAddress(ctx));
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         String flag = getRemoteAddress(ctx);
         TCPMasterListener.addCtx(flag, ctx);
-        if (this.tcpChannelManager != null) {
-            this.tcpChannelManager.clientConnected(flag, address(ctx));
-        }
+        this.tcpChannelManager.clientConnected(flag, address(ctx));
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        if (this.tcpChannelManager != null) {
-            this.tcpChannelManager.exceptionCaught(getRemoteAddress(ctx), cause);
-        }
+        this.tcpChannelManager.exceptionCaught(getRemoteAddress(ctx), cause);
     }
 
     private String getRemoteAddress(ChannelHandlerContext ctx) {

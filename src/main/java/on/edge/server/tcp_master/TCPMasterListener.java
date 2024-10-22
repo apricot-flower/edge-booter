@@ -72,16 +72,16 @@ public class TCPMasterListener implements ServerContext {
                 .channel(NioServerSocketChannel.class)
                 .option(ChannelOption.SO_BACKLOG, 1024)
                 .childOption(ChannelOption.SO_KEEPALIVE, true)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
-                .childHandler(new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    protected void initChannel(SocketChannel ch) throws Exception {
-                        if (decoder != null) {
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000);
+                if (decoder != null) {
+                    this.bootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(SocketChannel ch) throws Exception {
                             ch.pipeline().addLast(decoder.build());
+                            ch.pipeline().addLast(decoderHandler);
                         }
-                        ch.pipeline().addLast(decoderHandler);
-                    }
-                });
+                    });
+                }
         ChannelFuture channelFuture = this.bootstrap.bind(this.port).sync();
         channelFuture.channel().closeFuture().sync();
     }

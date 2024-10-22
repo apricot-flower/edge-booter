@@ -91,17 +91,17 @@ public class TCPSlaveAdministrators implements ServerContext {
                     .option(ChannelOption.TCP_NODELAY, Boolean.TRUE)
                     .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, this.timeout * 1000)
                     .option(ChannelOption.SO_SNDBUF, 10240)
-                    .option(ChannelOption.SO_REUSEADDR, true)
-                    .handler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        protected void initChannel(SocketChannel ch) throws Exception {
-                            // 添加编码解码器
-                            if (tcpSlaveChannelManager != null) {
-                                ch.pipeline().addLast(tcpSlaveChannelManager.getDecoder().build());
-                            }
-                            ch.pipeline().addLast(new TCPSlaveBusinessHandler(tcpSlaveChannelManager, name, host, port, timeout, reconnect));
-                        }
-                    });
+                    .option(ChannelOption.SO_REUSEADDR, true);
+            if (tcpSlaveChannelManager != null) {
+                bootstrap.handler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    protected void initChannel(SocketChannel ch) throws Exception {
+                        // 添加编码解码器
+                        ch.pipeline().addLast(tcpSlaveChannelManager.getDecoder().build());
+                        ch.pipeline().addLast(new TCPSlaveBusinessHandler(tcpSlaveChannelManager, name, host, port, timeout, reconnect));
+                    }
+                });
+            }
             ChannelFuture future = bootstrap.connect(host, port).sync();
             future.channel().closeFuture().sync();
         } catch (Exception e) {

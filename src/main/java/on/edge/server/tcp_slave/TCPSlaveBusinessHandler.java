@@ -28,36 +28,28 @@ public class TCPSlaveBusinessHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        if (this.tcpSlaveChannelManager != null) {
-            TCPSlaveListener.linked(name, false);
-            this.tcpSlaveChannelManager.update(null);
-            this.tcpSlaveChannelManager.disConnected(name, host, port, address(ctx), reconnect);
-        }
+        TCPSlaveListener.linked(name, false);
+        this.tcpSlaveChannelManager.update(null);
+        this.tcpSlaveChannelManager.disConnected(name, host, port, address(ctx), reconnect);
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        if (this.tcpSlaveChannelManager != null) {
-            this.tcpSlaveChannelManager.update(ctx);
-            this.tcpSlaveChannelManager.connected(name, host, port, address(ctx));
-            this.tcpSlaveChannelManager.run();
-        }
+        this.tcpSlaveChannelManager.update(ctx);
+        this.tcpSlaveChannelManager.connected(name, host, port, address(ctx));
+        this.tcpSlaveChannelManager.run();
     }
 
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (this.tcpSlaveChannelManager != null) {
-            this.tcpSlaveChannelManager.receivedMessage(msg, name, host, port);
-        }
+        this.tcpSlaveChannelManager.receivedMessage(msg, name, host, port);
     }
 
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        if (this.tcpSlaveChannelManager != null) {
-            this.tcpSlaveChannelManager.exceptionCaught(cause, name, host, port, address(ctx));
-        }
+        this.tcpSlaveChannelManager.exceptionCaught(cause, name, host, port, address(ctx));
 
     }
 
